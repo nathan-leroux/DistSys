@@ -1,0 +1,142 @@
+______ _     _   _____           
+|  _  (_)   | | /  ___|          
+| | | |_ ___| |_\ `--. _   _ ___ 
+| | | | / __| __|`--. \ | | / __|
+| |/ /| \__ \ |_/\__/ / |_| \__ \
+|___/ |_|___/\__\____/ \__, |___/
+                        __/ |    
+                       |___/     
+
+    Distributed Systems
+
+
+    gonna not worry about the book at this point, first things first ai
+
+## Week 1
+    
+    Prep and question
+    Lecture:    MapReduce
+    Notes
+
+    Prep and question
+    Lecture:    RPC and Threads
+    Notes   
+
+
+## Week 2
+    
+    Prep and question
+    Lecture:    GFS
+    Notes
+
+    Prep and question
+    Lecture:    Primary-Backup Replication
+    Notes
+###########################  PROGRESS MARKER  ###########################
+
+    Lab 1 Due
+
+## Week 3
+    
+    (President's Day)
+
+    Prep and question
+    Lecture:    Go, Threads and Raft
+    Notes
+
+    Lab 2A Due
+
+## Week 4
+    
+    Prep and question
+    Lecture:    Fault Tolerance: Raft (1)
+    Notes
+
+    Prep and question
+    Lecture:    Fault Tolerance: Raft (2)
+    Notes
+
+    Lab 2B Due
+
+## Week 5
+    
+    Prep and question
+    Lecture:    Zookeeper
+    Notes
+
+    Prep and question
+    Lecture:    More Replication
+    Notes
+
+    Lab 2C Due
+
+## Week 6
+    
+    Prep and question
+    Lecture:    Cloud Replicated DB
+    Notes
+
+    Prep and question
+    Lecture:    Cache Consistency
+    Notes
+
+## Week 7
+    
+    Prep and question
+    Lecture:    Distributed Transactions
+    Notes
+
+    Mid-term
+
+    Lab 3A Due
+
+## Week 8
+    
+    Prep and question
+    Lecture:    Spanner
+    Notes
+
+    Prep and question
+    Lecture:    Optimistic Concurrency
+    Notes
+
+## Week 9
+    
+    Prep and question
+    Lecture:    Big Data: Spark
+    Notes
+
+    Prep and question
+    Lecture:    Cache Consistency
+    Notes
+
+    Lab 3B Due
+
+    Lab 4A Due
+
+## Week 10
+    
+    Prep and question
+    Lecture:    Causal Consistency
+    Notes
+
+    Prep and question
+    Lecture:    Fork Consistency
+    Notes
+
+
+## Week 11
+    
+    Prep and question
+    Lecture:    Bitcoin
+    Notes
+
+    Prep and question
+    Lecture:    Blockstack
+    Notes
+
+    Lab 4B due
+
+    Exam
+
+

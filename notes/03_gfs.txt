@@ -1,0 +1,103 @@
+Lecture 3: Google File System (GFS)
+
+Question: Describe a sequesnce of events that would result in a client reading stale data form the google file system?
+    
+it is possible for a client to recieve stale data in the following series of events:
+    1. the client attempts to read data from a file, it contacts the master process and recieves the network address of the current primary chunk and its replicas.
+    2. during this read operation, a replica the client is reading from fails and misses a mutating operation (either write or record append), the replica is now stale
+    3. before the primary chucks lease expires (where the master will purge replicas with outdated chunk id's) the client is unaware of this change as it is not in contact with the master and has cached the replica addresses, the client then reads from the stale chunk
+
+Why are we reading this paper?
+
+    Distributed storage is a key abstraction, able to store files larger than any individual disk
+    this paper touches on many themes of the unit:
+        parallel performance,
+        fault tolerance,
+        replication,
+        consistency,
+    took academic ideas and provided feedback in an industry setting
+
+    distributed storage is hard as there is a tradeoff between consistency in information v performance.
+
+    Consistency is when the behaviour appears to be a single non-concurrent server.
+    Replication for fault-tolerance quickly makes strong consistency tricky. Two replicas of data can easily become two near copies of the same data.
+
+
+Google File System
+
+    made in ~2003, google needed a big fast unified storage system.
+    Localised in a single data-centre
+    aimed at sequential access to huge files, not low-latency for small items
+
+    structured as a single master process coordinating many chunk servers
+    each file split into independent 64mb chunks
+    each chunk replicated over 3 chunk servers
+    master keeps track of all metadata
+    chunks servers keep track of which chunks they hold
+    
+    master keeps the following state mappings in memory:
+        file name: array of chunk handles (id's)
+        chunk handler: {
+                current version no.
+                list of chunkservers holding the chunk
+                primary chunkserver
+                lease time
+        }
+    master also logs all transations and makes periodic checkpoints (full save of state) to disk
+
+    when a client wants to read a file:
+        1. sends filename and file offset (position) to master 
+        2. master returns list of chunkservers holding that data, finds this by looking up chunk handle
+        3. client caches chunkserver addresses, handle
+        4. client requests data from nearest chunkserver
+        5. chunkserver returns data
+
+    when a client wants to write a file:
+        1. client asks master for info about files last chunk
+        2. master does the following if there is no current primary:
+            assigns primary chunkserver
+            error checks current chunk number against server, increments number
+            informs primary and secondary servers of their role, servers increment chunk number too
+        3. master returns primary and secondary replica addresses to client
+        4. client sends data to all, waits
+        5. client tells primary chunkserver to append
+        6. primary appends at the current EOF offset and informs secondarys to do the same
+        7. if anything goes wrong (secondaries time out) return error
+        8. if error, client runs full operation again
+
+
+Consistency in GFS
+
+    GFS doesn't have strong consistency
+    when a write occours, if something goes wrong it is possible for 0 or more of the replicas to mutate, but not all. no correction or consensus is imediately done.
+    
+    With the client retrying failed writes, duplicate entries will exist for the replicas who did append during the failed attempt.
+
+    if an appending client fails at an awkward moment, some records could exist without a copy of the appended record.
+    
+    the primary having a 'lease' from the master prevents a situation where the master and the primary are both still running, but unable to communicate.
+    Known as 'split brain' the master knows that after the agreed lease, the primary will stop responding to new requests and a new primary can be safely allocated by the master
+
+    the master did not have automatic recovery, would have to be manually restored by a human
+
+    weak consistency was ok due to the nature of the applications client used GFS for.
+
+
+Summary
+
+    good ideas:
+        having the global cluster file system as universal infrastructure for many applications
+        separation of naming (master) from storage (chunkserver)
+        sharding for parallel throughput (able to read from many servers at once)
+        primary to sequence writes
+        leases to prevent split brain
+
+    not so good ideas:
+        whole system is limited by master's memory (has to store all metadata in memory)
+        with 64mb chunks, chunkservers not efficient for small files
+        no auto-recovery for master process
+        relaxed consistency limits possible applications and makes handling errors complex
+
+
+
+

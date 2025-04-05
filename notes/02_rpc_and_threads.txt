@@ -1,0 +1,122 @@
+Lecture 2: RPC and Threads
+Question:
+    Question was complete go tutorial and finish concurrency question
+
+Why Go?
+
+    Go has good thread support, type safe, garbage collection. Go also has convenient remote procedure calls
+    
+
+Threads
+
+    Short for thread of execution
+    a structuring tool, in go they are 'goroutines'
+    execute serially, like processes
+    unlike processes, threads can share memory, very useful but can cause races
+    each thread includes some state,
+        program counter
+        registers
+        stack
+
+Why Threads
+
+    provide concurrency, which is essential in distributed systems
+    provided concurrency during I/O operations, io is of course really slow
+    allow full use of multicore processors
+    
+Thread Alternatives
+
+    Threads can be avoided by writing explicitly interleaving code, known as event-driven programming
+    state about each activity is needed/ each request
+    an event loop that:
+        checks for new input for each activity
+        does the next step for each activity
+        updates state
+
+    Event driven gets you I/O concurrency and eliminates thread-costs (instantiation and memory)
+    doesnt give you multicore speedup
+    painful to program
+
+Threading Challenges
+
+    shared data causes conditions such as races
+    solutions include using mutex's or avoid sharing mutable data
+
+    coordination between threads
+    knowing when threads finish or when to wake up threads can cause unexpected logic errors (like i found)
+    solutions like sync.Cond or WaitGroup
+
+    deadlocks
+    occours when mutex's are aquired in no particular order eg:
+        thread1: has lock1 needs lock2
+        thread2: has lock2 needs lock1
+    requires an explicit order to obtain locks 
+
+The Webscrapper Example
+
+    required to crawl web, finding links to other pages, scrape no url twice
+
+    solutions:
+        Serial
+        does depth first search of network tree
+        fetches only one page at a time
+
+        ConcurrentMutex
+        thread for every search
+        all threads have 'Fetched' tracker
+        mutex for interacting with Fetched
+        decides when done by Waitgroup
+        Waitgroup is thread safe and tracks outstanding threads
+
+        ConcurrentChannel
+        channels allow threads to communicate without sharing data
+        one way communication between threads, kind of like a socket
+
+        a worker() is made for each url to fetch
+        master reads from channel any urls recieved, launches new workers for
+        new urls
+        master uses cpu time as it waits as reading from a channel is a blocking call if the channel is empty
+        
+    Locks and channels are styles that can both be used to solve similar problems
+    depends on what is intuitive
+
+    for labs, sharing and locks for state. for waiting/notification use sync.Cond, channels or time.Sleep()
+
+
+Remote Procedure Call (RPC)
+    makes client/server communication easy
+    hides details of network protocols
+    it also converts strings, arrays, maps pointers to 'wire format'
+
+    Details:
+        client knows which server to talk to from Dial() call, server name/port is passed
+        RPC can marshall strings, arrays, objects, maps
+        pointers are marshalled by sending the underlying data
+        cant pass channels or functions
+
+    RPC network Failures, and how they are handled
+        client actually never sees response from server, wont know at what 'stage' the process failed
+
+        'best effort' failure handling scheme
+        wait for response for a while
+        if none arrives, resend request
+        repeat
+        give up and return an error
+        only ok for read only operations, or operations that do nothing if repeated
+
+        'at most once' behaviour
+        have server identify duplicate requests, return previous reply instead of re-running
+        have client include unique request id
+        use same id for a resend
+
+        'At Most Once' complexities
+        what if two clients use the same identifier?
+        server must eventually discard info about old calls, how is this handled
+
+        what if a server crashes and re-starts?
+        will forget history of requests and might process a duplicate
+
+    RPC is a simple form of "at-most-once"
+        never re-sends a request
+        returns rpc error code if it doesn't get a reply
+

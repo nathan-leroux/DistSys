@@ -1,0 +1,50 @@
+Lecture 1: Introduction
+
+What is a distibuted system?
+
+    A distributed system is a program that is split up to run over multiple processes, typically processes hosted on differant machines. Reasons why this would be done include to increase performance of processes where the needs are geographically dispersed (bank transfers between countries), increased throughput is required (database of large websites).
+    Limitations of distributed systems are dealing with partial failures, difficulty developing/debuging due to complex nature of interactions and getting a return on throughput proportial to the extra resources thrown at the problem
+
+
+This is a course about infrastructure for applications
+
+    - Storage (BIG DATA)
+    - Communication
+    - Computation
+
+
+Big Ideas
+    
+    Performance
+       extra performance is achieved in distributed systems by allowing the work required to be subdivided into smaller chunks. Multiple processes/processors can work in paralle to achieve higher throughput.
+
+    Fault Tolerance
+        Typically crashes for individual computers are rare, a single server can be left running for about a year and not expect significant problems, however with distributed systems using very large numbers of computers (think 1000), crashes and failures are very common and need to be anticipated. Fault tolerance concerns the system dealing with partial failures and still having it's service be available.
+        Recoverability is when a dist system has a critical failure and is no longer available at all. It can be rebooted into a state where it can continue on as if nothing happened.
+
+    Consistancy
+        with many processes executing holding copies of the same information to protect against failures, keeping information consistant and in sync becomes and issue in distributed systems. Consider a database and the calls get() and put(). Once a put is called, if there is a failure before all copies of the new value are updated, the next get() (depending on the system rules) has a chance to return the old value before the put updates. Consistancy deals with keeping all data in sync and how strict the system is.
+        Consistancy and performance are not friends.
+
+
+Map Reduce (Case study)
+    
+    Google engineers were handrolling specialised solutions whenever they had a problem that required distributed computation. in 2004 MapReduce was made as an abstraction to allow the execution of distributed computing progams without any knowledge of how the process was split.
+
+    Technique
+        In two stages, Map() and Reduce(). Both deterministic (purely functional).
+
+        One master process and many worker processes are instantiated across the system. The master process is responsible for allocation work to the workers and keeping track of worker status, resources and tracking statistics to display to the user.
+
+        The worker processes are given a small task from the job, process the data and save it to file.
+
+        Map() tasks are given an input file and produce key value pairs saved to an 'intermediate' file.
+        Reduce() tasks are given an iterable of one key and its values and produce a final output of key value pairs writen to the output file.
+
+        Scalability of MapReduce is good due to processes running in parallel with no shared state.
+        Most likely limit to performance is network resources. Network throughput is scarce and MapReduce attempts to limit transfers by assigning jobs to processes that already have/ are near to the input data.
+
+        MR details with faults by getting workers to ping the master process intermitenly, when a worker fails to ping within a certain amount of time, all tasks competed by the worker are returned to queue (as the output files are no longer accessable) and rescheduled.
+
+        If workers are slow because of some fault, MR schedules duplicate jobs when near completion, and when either copy of the slow jobs is complete the process returns.
+

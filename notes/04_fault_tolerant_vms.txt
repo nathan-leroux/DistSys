@@ -1,0 +1,110 @@
+Lecture 3: Fault-Tolerant Virtual Machines
+
+Question:
+    VM FT handles network partitions by having each attempt to perform an atomic test and set on a shared virtual disk, if it succeeds that one will become the primary, if it fails the process will suicide.
+
+    In implementations where the VM's have seperate Disks, a third-party server or consensus algorithm is needed to determine which VM continues as the primary.
+
+Paper Notes:
+
+general idea is by running an application inside of a virtual machine, an identical backup copy can be kept because the state of a vm is easily 'deterministic' (predictable).
+the primary runs pretty much like normal, sends a log of all its activities to the backup in the 'log stream'
+the secondary replays all the info it gets, so it is in the exact state the primary is, just with a little lag.
+some system activities a are (non-deterministic) like timer interupts and clock reads. the primary captures the exact timing of when these happen between deterministic actions so they can be recreated on the backup.
+
+In the case of incoming packets, when they are recieved they are initially placed in a hypervisor reserved memory block. when there is a chance the execution of the virtual application is suspended and the incoming packet is 'received' by the virtual machine at a deterministic time.
+
+cornerstone of this is the 'Output Requirement':
+    if a backup VM takes over a primary, it should continue executing in a way entirely consistent with all the outputs that the primary VM has sent to the external world
+
+to achieve this, is the 'Output Rule':
+    the primary may not send an output until the backup has recieved and acknowledged the log entry of this.
+
+if either the primary or the backup shits the bed, the remaining one 'goes live'
+primary would stop sending on the log stream and wouldn't wait for output confirmations.
+backup would complete the remaining logstream actions and then begin replying to new inputs as if it was the primary
+
+failure is detected by heartbeats and measuring the activity on the log stream
+
+after a failure, the second vm is rebooted by making a clone of the still running VM, typically takes a second.
+
+split-brain is prevented by when a vm wants to 'go live', it attempts an atomic test and set on the two VM's shared memory, if success it 'goes live', if it fails the other VM must have already gone live and it is already out of sync, the vm will then commit suicide.
+
+possible other implementations include where the VM's have their own virtual disks, this reduces information sent on the log stream but special care would be needed to ensure disk writes and reads are consistant, particularly when one succeeds and the other fails. 
+
+
+Lecture Notes:
+
+What kind of failures can replication deal with?
+    replication can deal with "fail-stop" failures.
+    what this means is a problem causes the system to fail, once failure the system stops executing instructions (importantly does not execute 'incorrect' corrupting results).
+    examples include fan failure, disconnected from network, out of disk space etc.
+    
+    replication can not deal with bugs or human configuration errors.
+    if software with bugs was replicated, the same failure would likely occour on the replicated copy.
+
+Is replication worth the extra cost?
+    economic question that depends on the cost of the system failing.
+    for large enough systems (industrial), would likely be worth the extra cost
+
+Types of replication approaches:
+    State Transfer
+        primary executes the service
+        primary replica sends its full state to backups
+
+    Replicated state machine
+        primary sequences all operations performed and sends to backup
+        all repliccas execute all operations
+        if they all start with the same start state
+            have the same operations in the same order
+            and operations are deterministic
+        then they'll have the same end state
+
+    State transfer is simple but is likely a large transfer over network
+    Replicated state often generates less traffic, however is complex to get right.
+
+Big questions
+    What state needs to be replicated?
+        all operations that are non deterministic
+        examples include network and disk I/O, random operations, time operations, Timer interupts
+        if the backups execute their own non-deterministic operations, they likely wont return the same as the primary.
+        all deterministic stuff can be ignored, will always be the same.
+
+    Does primary have to wait for backup?
+        the primary has to wait for the backup to acknowledge outbound I/O operations, even with small ms delays, this is a huge performance bottleneck.
+        the primary does have to wait if the log stream is full also, less common
+
+    When to cut over to the backup?
+        the replicas have no way of knowing if each other has died
+        however the backup can reasonable expect something to be wrong if the primary does not send any logs for an extended period (1 sec)
+        the backup should be expecting hundreds of timer interupts each second.
+
+    Are anomalies visible at cut-over?
+        It is virtually impossible to completely eliminate anomalies in a replicated system.
+        most anomalies will only be visible to the hypervisor, not the application (dropping replicated network packets).
+
+    How to bring a replacement backup to speed?
+        The backup consumes all remaining instructions in the log channel before 'going live'
+        from there the backup starts responding to live requests.
+
+
+Differences in levels that replicas are identical at?
+    Application level
+        GFS replicates at this level
+        efficient, only high level operations need to be sent
+        application code needs to understand fault tolerance
+
+    Machine level
+        VMware FT replicates at this level
+        any software can be replicated without modification
+        requires forwarding of machine events
+        requires "machine" modifications to send/recv event stream
+
+Where might FT be attractive?
+    Critical but low-intensity services, e.g. name server
+    Services whose software is not convenient to modify
+
+    Less so for high-throughput services
+    the state needed to be transfered is just DB, not all memory+disk
+    the events are just db commands, not packets
+        
